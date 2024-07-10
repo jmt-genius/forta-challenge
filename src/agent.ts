@@ -1,86 +1,83 @@
-import {
-  BlockEvent,
-  Finding,
-  Initialize,
-  HandleBlock,
-  HealthCheck,
-  HandleTransaction,
-  HandleAlert,
-  AlertEvent,
-  TransactionEvent,
-  FindingSeverity,
-  FindingType,
-} from "forta-agent";
+import { FindingType, FindingSeverity, Finding, HandleTransaction, TransactionEvent } from "forta-agent";
 
-export const ERC20_TRANSFER_EVENT = "event Transfer(address indexed from, address indexed to, uint256 value)";
-export const TETHER_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
-export const TETHER_DECIMALS = 6;
-let findingsCount = 0;
+const CREATE_FUNCTION_ABI: string = "function createAgent(uint256 agentId, address owner, string metadata, uint256[] chainIds) public";
+const UPDATE_FUNCTION_ABI: string = "function updateAgent(uint256 agentId, address owner, string metadata, uint256[] chainIds) public";
+const DELETE_FUNCTION_ABI: string = "function deleteAgent(uint256 agentId) public";
 
-const handleTransaction: HandleTransaction = async (txEvent: TransactionEvent) => {
-  const findings: Finding[] = [];
+const REGISTRY_ADDRESS: string = "0x61447385B019187daa48e91c55c02AF1F1f3F863";
+const BOT_DEPLOYER_ADDRESS: string = "0x88dC3a2284FA62e0027d6D6B1fCfDd2141a143b8";
 
-  // limiting this agent to emit only 5 findings so that the alert feed is not spammed
-  if (findingsCount >= 5) return findings;
+export function provideHandleTransaction(functionAbi: string, proxy: string, deployer: string): HandleTransaction {
+  return async (txEvent: TransactionEvent) => {
+    const findings: Finding[] = [];
 
-  // filter the transaction logs for Tether transfer events
-  const tetherTransferEvents = txEvent.filterLog(ERC20_TRANSFER_EVENT, TETHER_ADDRESS);
+    if (txEvent.from !== deployer.toLowerCase()) {
+      return findings;
+    }
 
-  tetherTransferEvents.forEach((transferEvent) => {
-    // extract transfer event arguments
-    const { to, from, value } = transferEvent.args;
-    // shift decimals of transfer value
-    const normalizedValue = value.div(10 ** TETHER_DECIMALS);
+    const createBotTx = txEvent.filterFunction(CREATE_FUNCTION_ABI, proxy);
+    const updateBotTx = txEvent.filterFunction(UPDATE_FUNCTION_ABI, proxy);
+    const deleteBotTx = txEvent.filterFunction(DELETE_FUNCTION_ABI, proxy);
 
-    // if more than 10,000 Tether were transferred, report it
-    if (normalizedValue.gt(10000)) {
+    createBotTx.forEach((transaction) => {
+      const { agentId, metadata, chainIds } = transaction.args;
       findings.push(
         Finding.fromObject({
-          name: "High Tether Transfer",
-          description: `High amount of USDT transferred: ${normalizedValue}`,
-          alertId: "FORTA-1",
-          severity: FindingSeverity.Low,
+          name: "Bot Deployment",
+          description: "Bot Deployment by Nethermind",
+          alertId: "NETH-1",
+          severity: FindingSeverity.Info,
           type: FindingType.Info,
+          protocol: "Forta",
           metadata: {
-            to,
-            from,
+            agentId: agentId.toString(),
+            metadata,
+            chainIds: chainIds.toString(),
           },
         })
       );
-      findingsCount++;
-    }
-  });
+    });
 
-  return findings;
-};
+    updateBotTx.forEach((transaction) => {
+      const { agentId, metadata, chainIds } = transaction.args;
+      findings.push(
+        Finding.fromObject({
+          name: "Bot Update",
+          description: "Bot Update by Nethermind",
+          alertId: "NETH-2",
+          severity: FindingSeverity.Info,
+          type: FindingType.Info,
+          protocol: "Forta",
+          metadata: {
+            agentId: agentId.toString(),
+            metadata,
+            chainIds: chainIds.toString(),
+          },
+        })
+      );
+    });
 
-// const initialize: Initialize = async () => {
-//   // do some initialization on startup e.g. fetch data
-// }
+    deleteBotTx.forEach((transaction) => {
+      const { agentId } = transaction.args;
+      findings.push(
+        Finding.fromObject({
+          name: "Bot Deletion",
+          description: "Bot Deletion by Nethermind",
+          alertId: "NETH-3",
+          severity: FindingSeverity.Info,
+          type: FindingType.Info,
+          protocol: "Forta",
+          metadata: {
+            agentId: agentId.toString(),
+          },
+        })
+      );
+    });
 
-// const handleBlock: HandleBlock = async (blockEvent: BlockEvent) => {
-//   const findings: Finding[] = [];
-//   // detect some block condition
-//   return findings;
-// }
-
-// const handleAlert: HandleAlert = async (alertEvent: AlertEvent) => {
-//   const findings: Finding[] = [];
-//   // detect some alert condition
-//   return findings;
-// }
-
-// const healthCheck: HealthCheck = async () => {
-//   const errors: string[] = [];
-// detect some health check condition
-// errors.push("not healthy due to some condition")
-// return errors;
-// }
+    return findings;
+  };
+}
 
 export default {
-  // initialize,
-  handleTransaction,
-  // healthCheck,
-  // handleBlock,
-  // handleAlert
+  handleTransaction: provideHandleTransaction(CREATE_FUNCTION_ABI, REGISTRY_ADDRESS, BOT_DEPLOYER_ADDRESS),
 };
