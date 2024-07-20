@@ -32,6 +32,10 @@
     "stake": "forta-agent stake",
     "test": "jest"
   },
+  "dependencies": {
+    "forta-agent": "^0.1.48",
+    "forta-agent-tools": "^3.2.12"
+  },
   "devDependencies": {
     "@types/jest": "^29.5.10",
     "@types/nodemon": "^1.19.0",
