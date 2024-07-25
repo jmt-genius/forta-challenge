@@ -1,4 +1,4 @@
-import { FindingType, FindingSeverity, Finding, HandleTransaction, TransactionEvent } from "forta-agent";
+import { Finding, HandleTransaction, TransactionEvent } from "forta-agent";
 
 // Define the ABI strings for the create, update, and delete agent functions
 const CREATE_FUNCTION_ABI: string = "function createAgent(uint256 agentId, address, string metadata, uint256[] chainIds) external";
