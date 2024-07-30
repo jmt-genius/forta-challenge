@@ -6,12 +6,7 @@ This project implements a Forta bot to monitor bot deployments, updates, and del
 
 ## Supported Chains
 
-- Ethereum (Mainnet and Testnets)
-- Binance Smart Chain (BSC)
-- Polygon (Matic)
-- Avalanche
-- Arbitrum
-- Optimism
+- Polygon
 
 
 ## Alerts
