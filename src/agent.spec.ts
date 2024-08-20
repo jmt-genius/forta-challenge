@@ -1,74 +1,101 @@
-import {
-  FindingType,
-  FindingSeverity,
-  Finding,
-  HandleTransaction,
-  createTransactionEvent,
-  ethers,
-} from "forta-agent";
-import agent, {
-  ERC20_TRANSFER_EVENT,
-  TETHER_ADDRESS,
-  TETHER_DECIMALS,
-} from "./agent";
+import { Finding, FindingSeverity, FindingType, HandleTransaction, ethers } from 'forta-agent';
+import { createAddress } from 'forta-agent-tools';
+import { TestTransactionEvent, MockEthersProvider } from 'forta-agent-tools/lib/test';
+import { provideHandleTransaction } from './agent';
+import { swapEvent, uniswapPoolABI, UNI_INIT_CODE, UNISWAP_FACTORY_ADDRESS } from './agent'; // Import ABI and constants
+import { computePoolAddress } from './agent'; // Import computeAddress function
 
-describe("high tether transfer agent", () => {
+describe('Uniswap V3 Swap Event Detector', () => {
   let handleTransaction: HandleTransaction;
-  const mockTxEvent = createTransactionEvent({} as any);
+  let Iface: ethers.utils.Interface;
+
+  const mockFactoryAddress = createAddress(UNISWAP_FACTORY_ADDRESS);
+  let mockProvider: MockEthersProvider;
+  const mockRandomAddress = createAddress('0x6');
+
+  const mockToken0 = createAddress('0x765');
+  const mockToken1 = createAddress('0x987');
+  const mockFee = 10000;
+
+  const mockPoolValues = [mockToken0, mockToken1, mockFee];
+  const mockPoolAddress = computePoolAddress(mockFactoryAddress, [mockToken0, mockToken1, mockFee]);
+
+  const mockSwapEventArgs = [
+    createAddress('0x234'),
+    createAddress('0x345'),
+    ethers.BigNumber.from('-5378335736229591174395'),
+    ethers.BigNumber.from('266508884993980604'),
+    ethers.BigNumber.from('555620238891309147094159455'),
+    ethers.BigNumber.from('14900188386820019615173'),
+    -99206,
+  ];
 
   beforeAll(() => {
-    handleTransaction = agent.handleTransaction;
+    mockProvider = new MockEthersProvider();
+    const provider = mockProvider as unknown as ethers.providers.Provider;
+    handleTransaction = provideHandleTransaction(UNISWAP_FACTORY_ADDRESS, swapEvent, provider);
+    Iface = new ethers.utils.Interface(uniswapPoolABI);
   });
 
-  describe("handleTransaction", () => {
-    it("returns empty findings if there are no Tether transfers", async () => {
-      mockTxEvent.filterLog = jest.fn().mockReturnValue([]);
+  describe('handleTransaction', () => {
+    let txEvent: TestTransactionEvent;
 
-      const findings = await handleTransaction(mockTxEvent);
-
-      expect(findings).toStrictEqual([]);
-      expect(mockTxEvent.filterLog).toHaveBeenCalledTimes(1);
-      expect(mockTxEvent.filterLog).toHaveBeenCalledWith(
-        ERC20_TRANSFER_EVENT,
-        TETHER_ADDRESS
-      );
+    beforeEach(() => {
+      txEvent = new TestTransactionEvent();
+      txEvent.setBlock(0);
     });
 
-    it("returns a finding if there is a Tether transfer over 10,000", async () => {
-      const mockTetherTransferEvent = {
-        args: {
-          from: "0xabc",
-          to: "0xdef",
-          value: ethers.BigNumber.from("20000000000"), //20k with 6 decimals
-        },
-      };
-      mockTxEvent.filterLog = jest
-        .fn()
-        .mockReturnValue([mockTetherTransferEvent]);
+    const configProvider = (contractAddress: string) => {
+      mockProvider.addCallTo(contractAddress, 0, Iface, 'token0', { inputs: [], outputs: [mockToken0] });
+      mockProvider.addCallTo(contractAddress, 0, Iface, 'token1', { inputs: [], outputs: [mockToken1] });
+      mockProvider.addCallTo(contractAddress, 0, Iface, 'fee', { inputs: [], outputs: [mockFee] });
 
-      const findings = await handleTransaction(mockTxEvent);
+      mockProvider.setLatestBlock(0);
+    };
 
-      const normalizedValue = mockTetherTransferEvent.args.value.div(
-        10 ** TETHER_DECIMALS
-      );
+    it('ignores any txn that is not a Swap Event/Transaction', async () => {
+      txEvent.setFrom(mockRandomAddress).setTo(mockPoolAddress).setValue('123456789');
+
+      const findings = await handleTransaction(txEvent);
+
+      expect(findings).toStrictEqual([]);
+    });
+
+    it('ignores any txn that is a Swap Event but is not a UniswapV3 Swap', async () => {
+      txEvent.addEventLog(swapEvent, mockRandomAddress, mockSwapEventArgs);
+
+      configProvider(mockRandomAddress);
+
+      const findings = await handleTransaction(txEvent);
+      expect(findings).toStrictEqual([]);
+    });
+
+    it('returns findings when the Swap Event is a UniswapV3 Swap', async () => {
+      txEvent.addEventLog(swapEvent, mockPoolAddress, mockSwapEventArgs);
+
+      configProvider(mockPoolAddress);
+
+      const findings = await handleTransaction(txEvent);
+
+      expect(findings.length).toStrictEqual(1);
       expect(findings).toStrictEqual([
         Finding.fromObject({
-          name: "High Tether Transfer",
-          description: `High amount of USDT transferred: ${normalizedValue}`,
-          alertId: "FORTA-1",
-          severity: FindingSeverity.Low,
+          name: 'Uniswap V3 Swap Detector',
+          description: 'This Bot detects the Swaps executed on Uniswap V3',
+          alertId: 'FORTA-1',
+          severity: FindingSeverity.Info,
           type: FindingType.Info,
+          protocol: 'UniswapV3',
           metadata: {
-            to: mockTetherTransferEvent.args.to,
-            from: mockTetherTransferEvent.args.from,
+            poolAddress: mockPoolAddress.toLowerCase(),
+            sender: mockSwapEventArgs[0].toString(),
+            recipient: mockSwapEventArgs[1].toString(),
+            amount0: mockSwapEventArgs[2].toString(),
+            amount1: mockSwapEventArgs[3].toString(),
+            liquidity: mockSwapEventArgs[5].toString(),
           },
         }),
       ]);
-      expect(mockTxEvent.filterLog).toHaveBeenCalledTimes(1);
-      expect(mockTxEvent.filterLog).toHaveBeenCalledWith(
-        ERC20_TRANSFER_EVENT,
-        TETHER_ADDRESS
-      );
     });
   });
 });
