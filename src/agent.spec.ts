@@ -18,7 +18,7 @@ describe('Uniswap V3 Swap Event Detector', () => {
   const mockFee = 10000;
 
   const mockPoolValues = [mockToken0, mockToken1, mockFee];
-  const mockPoolAddress = computePoolAddress(mockFactoryAddress, [mockToken0, mockToken1, mockFee]);
+  const mockPoolAddress = computePoolAddress(mockFactoryAddress, mockPoolValues);
 
   const mockSwapEventArgs = [
     createAddress('0x234'),
