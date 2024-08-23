@@ -2,7 +2,7 @@ import { Finding, FindingSeverity, FindingType, HandleTransaction, ethers } from
 import { createAddress } from 'forta-agent-tools';
 import { TestTransactionEvent, MockEthersProvider } from 'forta-agent-tools/lib/test';
 import { provideHandleTransaction } from './agent';
-import { swapEvent, uniswapPoolABI, UNI_INIT_CODE, UNISWAP_FACTORY_ADDRESS } from './agent'; // Import ABI and constants
+import { swapEvent, uniswapPoolABI, UNISWAP_FACTORY_ADDRESS } from './agent'; // Import ABI and constants
 import { computePoolAddress } from './agent'; // Import computeAddress function
 
 describe('Uniswap V3 Swap Event Detector', () => {
