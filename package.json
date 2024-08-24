@@ -8,7 +8,10 @@
   "licenseUrl": "https://github.com/jmt-genius/forta-challenge/blob/two/LICENSE.md",
   "promoUrl": "https://uniswap.org/",
   "chainIds": [
-    1
+    1,
+    10,
+    137,
+    42161
   ],
   "scripts": {
     "build": "tsc",
