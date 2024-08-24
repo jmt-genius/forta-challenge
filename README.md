@@ -7,8 +7,8 @@ This Forta Bot detects swaps made on Uniswap V3.
 ## Supported Chains
 
 - Ethereum
-- Arbitrum,
-- Optimisim
+- Arbitrum
+- Optimism
 - Polygon
 
 ## Alerts
