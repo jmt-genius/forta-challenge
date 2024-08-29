@@ -2,14 +2,14 @@ import { Finding, FindingSeverity, FindingType, HandleTransaction, ethers } from
 import { createAddress } from 'forta-agent-tools';
 import { TestTransactionEvent, MockEthersProvider } from 'forta-agent-tools/lib/test';
 import { provideHandleTransaction } from './agent';
-import { swapEvent, uniswapPoolABI, UNISWAP_FACTORY_ADDRESS } from './agent'; // Import ABI and constants
+import { swapEvent, uniswapPoolABI } from './agent'; // Import ABI and constants
 import { computePoolAddress } from './agent'; // Import computeAddress function
 
 describe('Uniswap V3 Swap Event Detector', () => {
   let handleTransaction: HandleTransaction;
   let Iface: ethers.utils.Interface;
 
-  const mockFactoryAddress = createAddress(UNISWAP_FACTORY_ADDRESS);
+  const mockFactoryAddress = createAddress('0x4'); // Mock factory address
   let mockProvider: MockEthersProvider;
   const mockRandomAddress = createAddress('0x6');
 
@@ -33,7 +33,7 @@ describe('Uniswap V3 Swap Event Detector', () => {
   beforeAll(() => {
     mockProvider = new MockEthersProvider();
     const provider = mockProvider as unknown as ethers.providers.Provider;
-    handleTransaction = provideHandleTransaction(UNISWAP_FACTORY_ADDRESS, swapEvent, provider);
+    handleTransaction = provideHandleTransaction(mockFactoryAddress, swapEvent, provider); // Use mockFactoryAddress here
     Iface = new ethers.utils.Interface(uniswapPoolABI);
   });
 
@@ -79,6 +79,51 @@ describe('Uniswap V3 Swap Event Detector', () => {
 
       expect(findings.length).toStrictEqual(1);
       expect(findings).toStrictEqual([
+        Finding.fromObject({
+          name: 'Uniswap V3 Swap Detector',
+          description: 'This Bot detects the Swaps executed on Uniswap V3',
+          alertId: 'FORTA-1',
+          severity: FindingSeverity.Info,
+          type: FindingType.Info,
+          protocol: 'UniswapV3',
+          metadata: {
+            poolAddress: mockPoolAddress.toLowerCase(),
+            sender: mockSwapEventArgs[0].toString(),
+            recipient: mockSwapEventArgs[1].toString(),
+            amount0: mockSwapEventArgs[2].toString(),
+            amount1: mockSwapEventArgs[3].toString(),
+            liquidity: mockSwapEventArgs[5].toString(),
+          },
+        }),
+      ]);
+    });
+
+    it('returns multiple findings when there are multiple Uniswap V3 swaps', async () => {
+      txEvent.addEventLog(swapEvent, mockPoolAddress, mockSwapEventArgs);
+      txEvent.addEventLog(swapEvent, mockPoolAddress, mockSwapEventArgs); // Add the same event twice for testing
+
+      configProvider(mockPoolAddress);
+
+      const findings = await handleTransaction(txEvent);
+
+      expect(findings.length).toStrictEqual(2); // Expect 2 findings
+      expect(findings).toStrictEqual([
+        Finding.fromObject({
+          name: 'Uniswap V3 Swap Detector',
+          description: 'This Bot detects the Swaps executed on Uniswap V3',
+          alertId: 'FORTA-1',
+          severity: FindingSeverity.Info,
+          type: FindingType.Info,
+          protocol: 'UniswapV3',
+          metadata: {
+            poolAddress: mockPoolAddress.toLowerCase(),
+            sender: mockSwapEventArgs[0].toString(),
+            recipient: mockSwapEventArgs[1].toString(),
+            amount0: mockSwapEventArgs[2].toString(),
+            amount1: mockSwapEventArgs[3].toString(),
+            liquidity: mockSwapEventArgs[5].toString(),
+          },
+        }),
         Finding.fromObject({
           name: 'Uniswap V3 Swap Detector',
           description: 'This Bot detects the Swaps executed on Uniswap V3',
