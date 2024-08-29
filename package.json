@@ -1,0 +1,55 @@
+{
+  "name": "uniswap-v3-swap-detector",
+  "displayName": "Uniswap V3 Swap Event Detector",
+  "version": "0.1.0",
+  "description": "Forta agent for detecting swap events on Uniswap V3.",
+  "longDescription": "This Forta agent monitors the Ethereum blockchain for swap events occurring on Uniswap V3 pools. It detects and logs specific swap details, ensuring real-time monitoring and alerting for relevant Uniswap V3 transactions.",
+  "repository": "https://github.com/jmt-genius/forta-challenge",
+  "licenseUrl": "https://github.com/jmt-genius/forta-challenge/blob/two/LICENSE.md",
+  "promoUrl": "https://uniswap.org/",
+  "chainIds": [
+    1,
+    10,
+    137,
+    42161
+  ],
+  "scripts": {
+    "build": "tsc",
+    "start": "npm run start:dev",
+    "start:dev": "nodemon --watch src --watch forta.config.json -e js,ts,json  --exec \"npm run build && forta-agent run\"",
+    "start:prod": "forta-agent run --prod",
+    "tx": "npm run build && forta-agent run --tx",
+    "block": "npm run build && forta-agent run --block",
+    "range": "npm run build && forta-agent run --range",
+    "alert": "npm run build && forta-agent run --alert",
+    "sequence": "npm run build && forta-agent run --sequence",
+    "file": "npm run build && forta-agent run --file",
+    "publish": "forta-agent publish",
+    "info": "forta-agent info",
+    "logs": "forta-agent logs",
+    "push": "forta-agent push",
+    "disable": "forta-agent disable",
+    "enable": "forta-agent enable",
+    "keyfile": "forta-agent keyfile",
+    "stake": "forta-agent stake",
+    "test": "jest"
+  },
+  "dependencies": {
+    "forta-agent": "^0.1.48",
+    
+    "lru-cache": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.3.17",
+    "@types/jest": "^29.5.10",
+    "@types/mocha": "^10.0.7",
+    "@types/nodemon": "^1.19.0",
+    "@types/sinon": "^17.0.3",
+    "forta-agent-tools": "^3.2.12",
+    "jest": "^29.7.0",
+    "nodemon": "^2.0.8",
+    "prettier": "^3.3.3",
+    "ts-jest": "^29.1.1",
+    "typescript": "^4.3.4"
+  }
+}
