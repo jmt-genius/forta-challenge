@@ -1,26 +1,30 @@
-# Large Tether Transfer Agent
+# MakerDAO Bridge Invariant Agent
 
 ## Description
 
-This agent detects transactions with large Tether transfers
+This agent monitors the MakerDAO Bridge invariant by comparing the DAI balances between Layer 1 (Ethereum) and Layer 2 (Arbitrum, Optimism) chains. It helps ensure that the DAI supply is consistent across different layers of the blockchain.
 
 ## Supported Chains
 
 - Ethereum
-- List any other chains this agent can support e.g. BSC
+- Arbitrum
+- Optimism
 
 ## Alerts
 
-Describe each of the type of alerts fired by this agent
+The agent fires alerts based on discrepancies between Layer 1 escrow DAI balances and Layer 2 DAI supplies:
 
-- FORTA-1
-  - Fired when a transaction contains a Tether transfer over 10,000 USDT
-  - Severity is always set to "low" (mention any conditions where it could be something else)
-  - Type is always set to "info" (mention any conditions where it could be something else)
-  - Mention any other type of metadata fields included with this alert
+- **FORTA-1**
+  - **Condition**: Fired when the Layer 2 DAI supply is more than the Layer 1 escrow DAI balance.
+  - **Severity**: Set to "medium" (mention any conditions where it could be something else).
+  - **Type**: Set to "issue" (mention any conditions where it could be something else).
+  - **Metadata**:
+    - `L1Bal`: The Layer 1 escrow DAI balance.
+    - `L2Bal`: The Layer 2 DAI supply.
 
 ## Test Data
 
-The agent behaviour can be verified with the following transactions:
+The bot behaviour can be verified with the following block:
 
-- 0x3a0f757030beec55c22cbc545dd8a844cbbb2e6019461769e1bc3f3a95d10826 (15,000 USDT)
+- [14020169](https://etherscan.io/block/14020169)
+
